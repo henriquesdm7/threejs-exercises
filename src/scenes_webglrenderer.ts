@@ -2,6 +2,7 @@ import CannonDebugger from 'cannon-es-debugger';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FlyControls } from 'three/addons/controls/FlyControls.js';
 import sunTexture from './assets/img/sunmap.jpg';
 import mercuryTexture from './assets/img/mercurymap.jpg';
 import venusTexture from './assets/img/venusmap.jpg';
@@ -12,6 +13,17 @@ import jupiterTexture from './assets/img/jupitermap.jpg';
 import uranusTexture from './assets/img/uranusmap.jpg';
 import neptuneTexture from './assets/img/neptunemap.jpg';
 import plutoTexture from './assets/img/plutomap.jpg';
+import * as dat from 'dat.gui';
+
+export const sceneWebGLInit = () => {
+    // Essentials
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer();
+    const orbitControls = new OrbitControls(camera, renderer.domElement);
+
+    return { scene, camera, renderer, orbitControls };
+}
 
 export const scene1 = (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, orbitControls: OrbitControls) => {
     const clock = new THREE.Clock();
@@ -346,6 +358,8 @@ export const scene4 = (scene: THREE.Scene, camera: THREE.PerspectiveCamera, rend
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
+    scene.updateMatrixWorld(true)
+    const gui = new dat.GUI();
     const textureLoader = new THREE.TextureLoader();
 
     const planetTextures: object = {
@@ -396,7 +410,7 @@ export const scene4 = (scene: THREE.Scene, camera: THREE.PerspectiveCamera, rend
         return { planet, planetOrbit };
     }
 
-    const planetSizeMultiplier = 2;
+    const planetSizeMultiplier = 1;
 
     const { planet: mercury, planetOrbit: mercuryObj } = createNewPlanet('mercury', 20, 0.058 * planetSizeMultiplier);
     const { planet: venus, planetOrbit: venusObj } = createNewPlanet('venus', 30, 0.14 * planetSizeMultiplier);
@@ -407,6 +421,53 @@ export const scene4 = (scene: THREE.Scene, camera: THREE.PerspectiveCamera, rend
     const { planet: uranus, planetOrbit: uranusObj } = createNewPlanet('uranus', 80, 0.6 * planetSizeMultiplier);
     const { planet: neptune, planetOrbit: neptuneObj } = createNewPlanet('neptune', 90, 0.6 * planetSizeMultiplier);
     const { planet: pluto, planetOrbit: plutoObj } = createNewPlanet('pluto', 100, 0.03 * planetSizeMultiplier);
+
+
+    var ultimoPlanetaSelecionado: THREE.Mesh; // Variável para armazenar o último planeta selecionado
+    var cameraOffset = new THREE.Vector3(0, 0, 10); // Offset da câmera em relação aos planetas
+
+
+    function focarEmPlaneta(planeta: THREE.Mesh) {
+        ultimoPlanetaSelecionado = planeta; // Armazena o último planeta selecionado
+        var posicaoPlaneta = planeta.position.clone(); // Obtenha a posição atualizada do planeta selecionado
+        camera.position.copy(posicaoPlaneta).add(cameraOffset); // Atualiza a posição da câmera para a posição do planeta + o offset
+        camera.lookAt(posicaoPlaneta); // Olha para a posição atualizada do planeta selecionado
+        orbitControls.target.copy(posicaoPlaneta); // Atualiza o alvo do OrbitControls para a posição atualizada do planeta selecionado
+    }
+    window.desfocarDePlanetas = (): void => {
+        ultimoPlanetaSelecionado = null; // Limpa a variável que armazena o último planeta selecionado
+    }
+
+    // Função para atualizar a posição da câmera em relação ao último planeta selecionado
+    function atualizarPosicaoCamera() {
+        if (ultimoPlanetaSelecionado) { // Verifica se há um último planeta selecionado
+            var posicaoPlaneta = ultimoPlanetaSelecionado.getWorldPosition(new THREE.Vector3()) // Obtenha a posição atualizada do último planeta selecionado
+            camera.position.copy(posicaoPlaneta).add(cameraOffset); // Atualiza a posição da câmera para a posição do último planeta selecionado + o offset
+            orbitControls.target.copy(posicaoPlaneta); // Atualiza o alvo do OrbitControls para a posição atualizada do último planeta selecionado
+        }
+    }
+    window.focarNoSol = () => focarEmPlaneta(sun);
+    window.focarEmMercurio = () => focarEmPlaneta(mercury);
+    window.focarEmVenus = () => focarEmPlaneta(venus);
+    window.focarNaTerra = () => focarEmPlaneta(earth);
+    window.focarEmMarte = () => focarEmPlaneta(mars);
+    window.focarEmJupiter = () => focarEmPlaneta(jupiter);
+    window.focarEmSaturno = () => focarEmPlaneta(saturn);
+    window.focarEmUrano = () => focarEmPlaneta(uranus);
+    window.focarEmNetuno = () => focarEmPlaneta(neptune);
+    window.focarEmPlutao = () => focarEmPlaneta(pluto);
+
+    gui.add(window, 'focarNoSol').name('Focar no Sol');
+    gui.add(window, 'focarEmMercurio').name('Focar em Mercurio');
+    gui.add(window, 'focarEmVenus').name('Focar em Venus');
+    gui.add(window, 'focarNaTerra').name('Focar na Terra');
+    gui.add(window, 'focarEmMarte').name('Focar em Marte');
+    gui.add(window, 'focarEmJupiter').name('Focar em Jupiter');
+    gui.add(window, 'focarEmSaturno').name('Focar em Saturno');
+    gui.add(window, 'focarEmUrano').name('Focar em Urano');
+    gui.add(window, 'focarEmNetuno').name('Focar em Netuno');
+    gui.add(window, 'focarEmPlutao').name('Focar em Plutão');
+    gui.add(window, 'desfocarDePlanetas').name('Desfocar de planetas');
 
 
     const animate = () => {
@@ -432,6 +493,8 @@ export const scene4 = (scene: THREE.Scene, camera: THREE.PerspectiveCamera, rend
         neptuneObj.rotateY(0.0004);
         plutoObj.rotateY(0.0003);
 
+        atualizarPosicaoCamera();
+        gui.updateDisplay();
         orbitControls.update();
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
